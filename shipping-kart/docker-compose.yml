@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app           # Mount local backend code
+      - /app/node_modules        # Prevent overwriting node_modules
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/shippingkart
+      - NODE_ENV=development
+    depends_on:
+      - mongo
+    command: npm run dev          # nodemon auto-reloads backend
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app           # Mount local frontend code
+      - /app/node_modules        # Prevent overwriting node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true # Fixes file watch issues in Docker
+    depends_on:
+      - backend
+    command: npm start            # React hot reload
+
+volumes:
+  mongo-data:
